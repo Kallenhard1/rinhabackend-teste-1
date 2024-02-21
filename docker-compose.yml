@@ -1,20 +1,11 @@
-version: "3"
-
 services:
-  app:
-    image: "node:14"
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-    depends_on:
-      - database
-
   database:
     image: "postgres:16.0-alpine3.18"
-    hostname: db
     environment:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
       POSTGRES_USER: root
-      POSTGRES_PASSWORD: 1234
       POSTGRES_DB: rinhadb
+      POSTGRES_PASSWORD: local_password
     ports:
       - "5432:5432"

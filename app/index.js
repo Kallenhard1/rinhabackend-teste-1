@@ -10,11 +10,23 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
+app.get("/", async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM pg_stat_activity;");
+    res.status(200).json({ message: result });
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ message: "Erro interno do servidor", error: err.message });
+  }
+});
+
 app.get("/pessoas", async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM pessoas;");
     res.status(200).json({
-      pessoas: result.rows,
+      pessoas: result,
     });
   } catch (err) {
     console.error(err);
@@ -31,10 +43,10 @@ app.get("/pessoas/:id", async (req, res) => {
     const result = await db.query("SELECT nome FROM pessoas WHERE id = $1;", [
       id,
     ]);
-    const pessoaName = result.rows[0].nome;
+    const pessoaNome = result.rows[0].nome;
     res.status(200).json({
       id: id,
-      name: pessoaName,
+      nome: pessoaNome,
     });
   } catch (err) {
     console.error(err);
@@ -45,15 +57,14 @@ app.get("/pessoas/:id", async (req, res) => {
   }
 });
 
-app.post("/pessoas", (req, res) => {
-  const { id, name } = req.body;
-  const body = {
-    id: id,
-    name: name,
-  };
+app.post("/pessoas", async (req, res) => {
+  const { id, nome } = req.body;
 
   try {
-    db.pessoas.push(body);
+    await db.query(`INSERT INTO pessoas (id, nome) VALUES($1, $2);`, [
+      id,
+      nome,
+    ]);
     res.status(200).json({
       success: true,
       message: "Pessoa cadastrada com sucesso!",
@@ -67,24 +78,16 @@ app.post("/pessoas", (req, res) => {
   }
 });
 
-app.put("/pessoas/:id", (req, res) => {
+app.put("/pessoas/:id", async (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
-  const pessoa = db.pessoas.find((obj) => obj.id === Number(id));
+  const { nome } = req.body;
 
   try {
-    if (pessoa) {
-      pessoa.name = name; // Atualiza a propriedade 'name'
-      res.status(200).json({
-        success: true,
-        message: "Pessoa atualizada com sucesso!",
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: "Pessoa não encontrada",
-      });
-    }
+    await db.query(`UPDATE pessoas SET nome = $2 WHERE id = $1;`, [id, nome]);
+    res.status(200).json({
+      success: true,
+      message: "Pessoa atualizada com sucesso!",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({
@@ -94,13 +97,12 @@ app.put("/pessoas/:id", (req, res) => {
   }
 });
 
-app.delete("/pessoas/:id", (req, res) => {
+app.delete("/pessoas/:id", async (req, res) => {
   const { id } = req.params;
-  const index = db.pessoas.findIndex((obj) => obj.id === Number(id));
 
   try {
-    if (index !== -1) {
-      db.pessoas.splice(index, 1);
+    const result = await db.query(`DELETE FROM pessoas WHERE id = $1;`, [id]);
+    if (result.rowCount > 0) {
       res.status(200).json({
         success: true,
         message: "Pessoa deletada com sucesso!",
