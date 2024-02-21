@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-let db = require("../db/database.js");
+const db = require("../db/database.js");
 const bodyParser = require("body-parser");
 const port = 3000;
 
@@ -10,32 +10,37 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-app.get("/pessoas", (req, res) => {
-  const pessoas = db.pessoas;
+app.get("/pessoas", async (req, res) => {
   try {
+    const result = await db.query("SELECT * FROM pessoas;");
     res.status(200).json({
-      pessoas: pessoas,
+      pessoas: result.rows,
     });
   } catch (err) {
-    res.status(401).json({
-      message: "Não foi possivel acessar pessoas",
-      error: err,
+    console.error(err);
+    res.status(500).json({
+      message: "Não foi possível acessar pessoas",
+      error: err.message,
     });
   }
 });
 
-app.get("/pessoas/:id", (req, res) => {
+app.get("/pessoas/:id", async (req, res) => {
   const { id } = req.params;
-  const pessoa = db.pessoas.filter((obj) => obj.id === Number(id));
   try {
+    const result = await db.query("SELECT nome FROM pessoas WHERE id = $1;", [
+      id,
+    ]);
+    const pessoaName = result.rows[0].nome;
     res.status(200).json({
       id: id,
-      title: pessoa[0].name,
+      name: pessoaName,
     });
   } catch (err) {
-    res.status(401).json({
-      message: "Não foi possivel acessar pessoa",
-      error: err,
+    console.error(err);
+    res.status(500).json({
+      message: "Não foi possível acessar pessoa",
+      error: err.message,
     });
   }
 });
@@ -54,9 +59,10 @@ app.post("/pessoas", (req, res) => {
       message: "Pessoa cadastrada com sucesso!",
     });
   } catch (err) {
-    res.status(401).json({
+    console.error(err);
+    res.status(500).json({
       success: false,
-      message: "Não foi possivel cadastrar pessoa",
+      message: "Não foi possível cadastrar pessoa",
     });
   }
 });
@@ -64,34 +70,52 @@ app.post("/pessoas", (req, res) => {
 app.put("/pessoas/:id", (req, res) => {
   const { id } = req.params;
   const { name } = req.body;
-  const pessoa = db.pessoas.filter((obj) => obj.id === Number(id));
+  const pessoa = db.pessoas.find((obj) => obj.id === Number(id));
+
   try {
-    pessoa[0] = name;
-    res.status(200).json({
-      success: true,
-      message: "Pessoa atualizada com sucesso!",
-    });
+    if (pessoa) {
+      pessoa.name = name; // Atualiza a propriedade 'name'
+      res.status(200).json({
+        success: true,
+        message: "Pessoa atualizada com sucesso!",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Pessoa não encontrada",
+      });
+    }
   } catch (err) {
-    res.status(401).json({
+    console.error(err);
+    res.status(500).json({
       success: false,
-      message: "Não foi possivel atualizar pessoa",
+      message: "Não foi possível atualizar pessoa",
     });
   }
 });
 
-app.delete("pessoas/:id", (req, res) => {
+app.delete("/pessoas/:id", (req, res) => {
   const { id } = req.params;
-  const pessoa = db.pessoas.filter((obj) => obj.id === Number(id));
+  const index = db.pessoas.findIndex((obj) => obj.id === Number(id));
+
   try {
-    db.pessoas.pop(pessoa);
-    res.status(200).json({
-      success: true,
-      message: "Pessoa deletada com sucesso!",
-    });
+    if (index !== -1) {
+      db.pessoas.splice(index, 1);
+      res.status(200).json({
+        success: true,
+        message: "Pessoa deletada com sucesso!",
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: "Pessoa não encontrada",
+      });
+    }
   } catch (err) {
-    res.status(401).json({
+    console.error(err);
+    res.status(500).json({
       success: false,
-      message: "Não foi possivel deletar pessoa",
+      message: "Não foi possível deletar pessoa",
     });
   }
 });

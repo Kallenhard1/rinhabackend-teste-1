@@ -1,15 +1,14 @@
-const pessoas = [
-  { id: 1, name: "Maik" },
-  { id: 2, name: "Natalia" },
-  { id: 3, name: "Lucca" },
-  { id: 4, name: "Wagner" },
-  { id: 5, name: "Mario" },
-];
+const { Client } = require("pg");
 
-import { Client } from "pg";
+const client = new Client({
+  host: "db",
+  port: 5432,
+  database: "rinhadb",
+  user: "root",
+  password: "1234",
+});
 
 async function query(queryObject) {
-  const client = new Client();
   try {
     await client.connect();
     const result = await client.query(queryObject);
@@ -22,7 +21,15 @@ async function query(queryObject) {
   }
 }
 
-export default {
+const pessoas = [
+  { id: 1, name: "Maik" },
+  { id: 2, name: "Natalia" },
+  { id: 3, name: "Lucca" },
+  { id: 4, name: "Wagner" },
+  { id: 5, name: "Mario" },
+];
+
+module.exports = {
   query: query,
   pessoas: pessoas,
 };
