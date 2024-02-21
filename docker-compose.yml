@@ -1,0 +1,10 @@
+services:
+  database:
+    image: "postgres:16.0-alpine3.18"
+    hostname: db
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: rinhadb
+    ports:
+      - "5432:5432"
