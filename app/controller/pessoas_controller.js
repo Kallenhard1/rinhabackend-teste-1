@@ -9,17 +9,23 @@ app.use(bodyParser.urlencoded({ extended: false }));
 // parse application/json
 app.use(bodyParser.json());
 
-const selectAllPessoas = async (req, res) => {
+const createPessoa = async (req, res) => {
+  const { apelido, nome, nascimento, stack } = req.body;
+
   try {
-    const result = await db.query("SELECT * FROM pessoas;");
+    await db.query(
+      `INSERT INTO pessoas (apelido, nome, nascimento, stack) VALUES($1, $2, $3, $4);`,
+      [apelido, nome, nascimento, stack]
+    );
     res.status(200).json({
-      pessoas: result,
+      success: true,
+      message: "Pessoa cadastrada com sucesso!",
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      message: "Não foi possível acessar pessoas",
-      error: err.message,
+      success: false,
+      message: "Não foi possível cadastrar pessoa",
     });
   }
 };
@@ -44,75 +50,67 @@ const selectPessoaById = async (req, res) => {
   }
 };
 
-const createPessoa = async (req, res) => {
-  const { id, nome } = req.body;
+const buscaPessoas = async (req, res) => {
+  const termo = req.query.t;
+
+  if (!termo) {
+    return res.status(400).json({
+      success: false,
+      message: "O parâmetro 't' é obrigatório para busca.",
+    });
+  }
 
   try {
-    await db.query(`INSERT INTO pessoas (id, nome) VALUES($1, $2);`, [
-      id,
-      nome,
-    ]);
+    const result = await db.query(
+      "SELECT * FROM pessoas WHERE nome ILIKE $1;",
+      [`%${termo}%`]
+    );
     res.status(200).json({
-      success: true,
-      message: "Pessoa cadastrada com sucesso!",
+      pessoas: result.rows,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Não foi possível cadastrar pessoa",
+      message: "Erro ao realizar busca por pessoas",
     });
   }
 };
 
-const uploadPessoa = async (req, res) => {
-  const { id } = req.params;
-  const { nome } = req.body;
-
+const contagemPessoas = async (req, res) => {
   try {
-    await db.query(`UPDATE pessoas SET nome = $2 WHERE id = $1;`, [id, nome]);
+    const result = await db.query("SELECT COUNT(*) AS total FROM pessoas;");
     res.status(200).json({
-      success: true,
-      message: "Pessoa atualizada com sucesso!",
+      total: result.rows[0].total,
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({
       success: false,
-      message: "Não foi possível atualizar pessoa",
+      message: "Erro ao obter contagem de pessoas cadastradas",
     });
   }
 };
 
-const deletePessoa = async (req, res) => {
-  const { id } = req.params;
-
+const selectAllPessoas = async (req, res) => {
   try {
-    const result = await db.query(`DELETE FROM pessoas WHERE id = $1;`, [id]);
-    if (result.rowCount > 0) {
-      res.status(200).json({
-        success: true,
-        message: "Pessoa deletada com sucesso!",
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: "Pessoa não encontrada",
-      });
-    }
+    const result = await db.query("SELECT * FROM pessoas;");
+    res.status(200).json({
+      pessoas: result,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      success: false,
-      message: "Não foi possível deletar pessoa",
+      message: "Não foi possível acessar pessoas",
+      error: err.message,
     });
   }
 };
 
 module.exports = {
-  selectAllPessoas,
-  selectPessoaById,
   createPessoa,
-  uploadPessoa,
-  deletePessoa,
+  selectPessoaById,
+  buscaPessoas,
+  contagemPessoas,
+  selectAllPessoas,
 };
