@@ -96,7 +96,7 @@ const selectAllPessoas = async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM pessoas;");
     res.status(200).json({
-      pessoas: result,
+      pessoas: result.rows,
     });
   } catch (err) {
     console.error(err);
